@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Timezone Converter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            padding: 30px;
+            text-align: center;
+        }
+        form, h1 {
+            margin-bottom: 30px;
+        }
+        select, button {
+            padding: 10px;
+            font-size: 16px;
+            margin: 10px;
+            width: 300px;
+        }
+        .clocks {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-top: 40px;
+        }
+        .clock-container {
+            text-align: center;
+        }
+        canvas {
+            background: white;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body>
+    <h1>Convert Between Timezones</h1>
+    <form method="POST">
+        <select name="source_timezone" required>
+            <option value="">Select Source Timezone</option>
+            {% for tz in timezones %}
+                <option value="{{ tz }}" {% if tz == source_timezone %}selected{% endif %}>{{ tz }}</option>
+            {% endfor %}
+        </select><br>
+
+        <select name="target_timezone" required>
+            <option value="">Select Target Timezone</option>
+            {% for tz in timezones %}
+                <option value="{{ tz }}" {% if tz == target_timezone %}selected{% endif %}>{{ tz }}</option>
+            {% endfor %}
+        </select><br>
+
+        <button type="submit">Convert</button>
+    </form>
+
+    {% if source_time and target_time %}
+    <div class="clocks">
+        <div class="clock-container">
+            <h3>{{ source_timezone }}</h3>
+            <canvas id="sourceClock" width="250" height="250" data-time="{{ source_time }}"></canvas>
+        </div>
+        <div class="clock-container">
+            <h3>{{ target_timezone }}</h3>
+            <canvas id="targetClock" width="250" height="250" data-time="{{ target_time }}"></canvas>
+        </div>
+    </div>
+    {% endif %}
+
+    <script>
+        function runAnalogClock(canvasId) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+
+            const ctx = canvas.getContext("2d");
+            const radius = canvas.height / 2;
+            ctx.translate(radius, radius);
+            const r = radius * 0.90;
+
+            let now = new Date(canvas.dataset.time);
+
+            function drawClock() {
+                ctx.clearRect(-radius, -radius, canvas.width, canvas.height);
+                drawFace();
+                drawNumbers();
+                drawTime();
+            }
+
+            function drawFace() {
+                ctx.beginPath();
+                ctx.arc(0, 0, r, 0, 2 * Math.PI);
+                ctx.fillStyle = 'white';
+                ctx.fill();
+
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = r * 0.05;
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.arc(0, 0, r * 0.1, 0, 2 * Math.PI);
+                ctx.fillStyle = '#333';
+                ctx.fill();
+            }
+
+            function drawNumbers() {
+                ctx.font = r * 0.15 + "px arial";
+                ctx.textBaseline = "middle";
+                ctx.textAlign = "center";
+                for (let num = 1; num <= 12; num++) {
+                    let ang = num * Math.PI / 6;
+                    ctx.rotate(ang);
+                    ctx.translate(0, -r * 0.85);
+                    ctx.rotate(-ang);
+                    ctx.fillText(num.toString(), 0, 0);
+                    ctx.rotate(ang);
+                    ctx.translate(0, r * 0.85);
+                    ctx.rotate(-ang);
+                }
+            }
+
+            function drawTime() {
+                let hour = now.getHours();
+                let minute = now.getMinutes();
+                let second = now.getSeconds();
+
+                hour = hour % 12;
+                hour = (hour * Math.PI / 6) + (minute * Math.PI / (6 * 60));
+                drawHand(hour, r * 0.5, r * 0.07);
+
+                minute = (minute * Math.PI / 30) + (second * Math.PI / (30 * 60));
+                drawHand(minute, r * 0.75, r * 0.07);
+
+                second = (second * Math.PI / 30);
+                drawHand(second, r * 0.85, r * 0.02, "red");
+            }
+
+            function drawHand(pos, length, width, color = "#333") {
+                ctx.beginPath();
+                ctx.lineWidth = width;
+                ctx.lineCap = "round";
+                ctx.strokeStyle = color;
+                ctx.moveTo(0, 0);
+                ctx.rotate(pos);
+                ctx.lineTo(0, -length);
+                ctx.stroke();
+                ctx.rotate(-pos);
+            }
+
+            drawClock();
+            setInterval(() => {
+                now.setSeconds(now.getSeconds() + 1);
+                drawClock();
+            }, 1000);
+        }
+
+        runAnalogClock("sourceClock");
+        runAnalogClock("targetClock");
+    </script>
+</body>
+</html>
